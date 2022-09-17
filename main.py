@@ -19,7 +19,7 @@ class Car(CreateMixin, UpdateMixin, ListingRetrieveMixin, DestroyMixin):
 
 flag = True
 while flag == True:
-    enter = input('1 - зарегистрироватся, 2 - войти: ')
+    enter = input('Добро пожаловать на Carslafo 1 - зарегистрироватся, 2 - войти: ')
     if enter == '1':
         loggin = input('введите логин: ')
         password = input('введите пороль: ')
