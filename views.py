@@ -1,24 +1,27 @@
+from curses.ascii import isdigit
 import json
+from pkgutil import get_data
 
+data_json = []
 class Get_info:
     def get_data(self):
         with open('data.json') as file:
             return json.load(file)
 
-    def catalog(self, v):
-        for i in v:
-            print(f'''
-                ID             : {i["id"]}
-                Марка          : {i["mark"]}
-                Модель         : {i["model"]}
-                Год выпуска    : {i["year"]}
-                Объем двигателя: {i["engine"]}
-                Цвет           : {i["color"]}
-                Кузов          : {i["body"]}
-                пробег         : {i["mileage"]}
-                Цена           : {i["price"]}
-                '''   
-            )
+    def catalog(self, i):
+        print(f'''
+            ID             : {i["id"]}
+            Марка          : {i["mark"]}
+            Модель         : {i["model"]}
+            Год выпуска    : {i["year"]}
+            Объем двигателя: {i["engine"]}
+            Цвет           : {i["color"]}
+            Кузов          : {i["body"]}
+            пробег         : {i["mileage"]}
+            Цена           : {i["price"]}
+            лайки          : {i["likes"]}
+            '''   
+        )
 
     def get_id(self):
         with open('id.txt', 'r') as file:
@@ -28,7 +31,6 @@ class Get_info:
             file.write(str(id))
         return id
 
-class CreateMixin(Get_info):
     def _get_or_set_objects_and_id(self):
         try:
             if (self.objects or not self.objects) and (self.id or not self.id):
@@ -36,6 +38,9 @@ class CreateMixin(Get_info):
         except (NameError, AttributeError):
             self.objects = []
             self.id = 0
+
+class CreateMixin(Get_info):
+
     def create_product(self):
         self._get_or_set_objects_and_id()
         try:    
@@ -48,7 +53,9 @@ class CreateMixin(Get_info):
                 'color': input('Введите цвет машины: '),
                 'body': input('Выберите тип кузова (седан, универсал. купе, хэтчбек, минивен, внедорожник, пикап): '),
                 'mileage': int(input('Введите пробег машины: ')),
-                'price': round(float(input('Введите цену машины: ')),2)
+                'price': round(float(input('Введите цену машины: ')),2),
+                'comment': [],
+                'likes': 0
                 }
 
         except ValueError:
@@ -57,11 +64,10 @@ class CreateMixin(Get_info):
             print()
             self.create_product()
         else:
-            self.objects.append(product)
-            # data.append(product)
-            # with open('data.json', 'w') as file:
-            #     json.dump(data, file,indent=2)
-            #     catalog(product)
+            data_json.append(product)
+            with open('data.json', 'w') as file:
+                json.dump(data_json, file)
+            
             
 
 class UpdateMixin(Get_info):
@@ -72,7 +78,7 @@ class UpdateMixin(Get_info):
 
         id = int(input('Введите id продукта: '))
         
-        product = list(filter(lambda x: x["id"] == id, data))
+        product = list(filter(lambda x: x['id'] == id, data))
 
         if not product:
             return 'Такого продукта нет'
@@ -110,11 +116,44 @@ class UpdateMixin(Get_info):
         with open('data.json', 'w') as file:
             json.dump(data, file)
 
-class ListingMixin(Get_info):
+class ListingRetrieveMixin(Get_info):
     def listing(self):
-        with open('data.json','r') as file:
-            for i in eval(file.read()):
+        data = self.get_data()
+        
+        while True:
+            with open('data.json','r') as file:
+                for i in eval(file.read()):
+                    self.catalog(i)
+            id = input('Введите id продукта для просмотра коментариев(retrieve)(end - exit): ')
+            
+            if id.lower() == 'end':
+                return 
+            elif id.isdigit():
+                id = int(id)
+            else:
+                print('вы ввели не коректные данные')
+                self.listing()
+            product = list(filter(lambda x: x['id'] == id, data))
+
+            if not product:
+                print('Такого продукта нет')
+                self.listing()
+
+            index_ = data.index(product[0])
+            for i in product:
                 self.catalog(i)
+                print('comments:')
+                for comments in i['comment']:
+                    print(comments)
+            ch = input('продолжть? (1 - коментарии, 2 - лайк, any keys - exit): ')
+            if ch == '1':
+                data[index_]["comment"].append(self.user+': '+input('введите комент: '))
+            elif ch == '2':
+                data[index_]["likes"] += 1
+            else:
+                return
+            with open('data.json', 'w') as file:
+                json.dump(data, file)
 
 class DestroyMixin(Get_info):
     def delete_product(self):
@@ -129,4 +168,5 @@ class DestroyMixin(Get_info):
         index_ = data.index(product[0])
         data.pop(index_)
 
-        self.objects.append(data)
+        with open('data.json', 'w') as file:
+            json.dump(data, file)
